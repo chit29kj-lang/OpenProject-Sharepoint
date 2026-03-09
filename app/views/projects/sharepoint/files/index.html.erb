@@ -1,0 +1,352 @@
+<%# Project: SharePoint Files Browser %>
+<% html_title @project.name, t("sharepoint.files.title") %>
+
+<%=
+  render Primer::OpenProject::PageHeader.new do |header|
+    header.with_title { t("sharepoint.files.title") }
+    header.with_breadcrumbs(
+      [{ href: project_overview_path(@project), text: @project.name },
+       t("sharepoint.files.title")]
+    )
+  end
+%>
+
+<% if @mapping.nil? %>
+  <div class="op-toast -warning">
+    <span class="op-toast--content">
+      <%= t("sharepoint.files.no_mapping") %>
+      <% if User.current.allowed_in_project?(:manage_sharepoint_mapping, @project) %>
+        &nbsp;<%= link_to t("sharepoint.files.link_site"),
+                           project_settings_sharepoint_path(@project) %>
+      <% end %>
+    </span>
+  </div>
+<% elsif @error %>
+  <div class="op-toast -error">
+    <span class="op-toast--content"><%= @error %></span>
+  </div>
+<% else %>
+
+<%# ── Folder breadcrumb nav ─────────────────────────────────────────────── %>
+<nav class="sp-files--breadcrumb" aria-label="breadcrumb">
+  <%= link_to(@mapping.sharepoint_site_name.presence || @mapping.sharepoint_site_id,
+              project_sharepoint_files_path(@project),
+              class: "sp-bc--item") %>
+
+  <% @breadcrumb.each_with_index do |crumb, idx| %>
+    <span class="sp-bc--sep" aria-hidden="true">&#x203A;</span>
+    <% if idx < @breadcrumb.length - 1 %>
+      <%= link_to(crumb["name"],
+                  project_sharepoint_files_path(@project,
+                    folder_id: crumb["id"],
+                    crumb:     @breadcrumb[0..idx].to_json),
+                  class: "sp-bc--item") %>
+    <% else %>
+      <span class="sp-bc--item -current" aria-current="page"><%= crumb["name"] %></span>
+    <% end %>
+  <% end %>
+</nav>
+
+<%# ── Main browser app ──────────────────────────────────────────────────── %>
+<div id="sp-files-app"
+     data-items="<%= @items.to_json %>"
+     data-folder-id="<%= @folder_id %>"
+     data-breadcrumb="<%= @breadcrumb.to_json %>"
+     data-files-url="<%= project_sharepoint_files_path(@project) %>"
+     data-empty-folder="<%= j t('sharepoint.files.empty_folder') %>"
+     data-no-results="<%= j t('sharepoint.files.no_search_results') %>"
+     data-pagination-tpl="<%= j t('sharepoint.files.pagination_info',
+                                  from: '{from}', to: '{to}', total: '{total}') %>">
+
+  <%# ── Toolbar ─────────────────────────────────────────────────────────── %>
+  <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.85rem; flex-wrap:wrap;">
+    <div style="position:relative; flex:1; min-width:200px; max-width:400px;">
+      <span style="position:absolute; left:0.55rem; top:50%; transform:translateY(-50%); width:14px; height:14px; color:#888; pointer-events:none;" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0
+               0 1-.326 1.269.749.749 0 01-.734-.201l-3.04-3.04-.001-.008zm-1.347-1.401-.001.001a4.5
+               4.5 0 10-.79.79l.791-.791z"/>
+        </svg>
+      </span>
+      <input type="search"
+             id="sp-search"
+             class="form--text-field"
+             style="padding-left:2rem;"
+             placeholder="<%= t('sharepoint.files.search_placeholder') %>"
+             autocomplete="off">
+    </div>
+
+    <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.875rem; white-space:nowrap; color:#555;">
+      <label for="sp-per-page"><%= t("sharepoint.files.per_page_label") %></label>
+      <select id="sp-per-page" class="form--select" style="width:auto; padding:0.25rem 0.5rem; min-width:60px;">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+      <span><%= t("sharepoint.files.per_page_suffix") %></span>
+    </div>
+  </div>
+
+  <%# ── File table ─────────────────────────────────────────────────────── %>
+  <div class="generic-table--container">
+    <div class="generic-table--results-container">
+      <table class="generic-table" id="sp-files-table" style="table-layout:fixed;">
+        <colgroup>
+          <col style="width:42%">
+          <col style="width:9%">
+          <col style="width:22%">
+          <col style="width:27%">
+        </colgroup>
+        <thead class="-sticky">
+          <tr>
+            <th>
+              <div class="generic-table--sort-header-outer">
+                <div class="generic-table--sort-header">
+                  <span><%= t("sharepoint.files.col_name") %></span>
+                </div>
+              </div>
+            </th>
+            <th style="text-align:right">
+              <div class="generic-table--sort-header-outer">
+                <div class="generic-table--sort-header">
+                  <span><%= t("sharepoint.files.col_size") %></span>
+                </div>
+              </div>
+            </th>
+            <th>
+              <div class="generic-table--sort-header-outer">
+                <div class="generic-table--sort-header">
+                  <span><%= t("sharepoint.files.col_modified") %></span>
+                </div>
+              </div>
+            </th>
+            <th>
+              <div class="generic-table--sort-header-outer">
+                <div class="generic-table--sort-header">
+                  <span><%= t("sharepoint.files.col_modified_by") %></span>
+                </div>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="sp-files-tbody">
+          <%# Populated by JavaScript %>
+        </tbody>
+      </table>
+    </div>
+
+    <%# ── Empty state ──────────────────────────────────────────────────── %>
+    <div class="generic-table--no-results-container" id="sp-empty-msg" style="display:none">
+      <div class="generic-table--no-results-title" id="sp-empty-text"></div>
+    </div>
+  </div>
+
+  <%# ── Pagination ─────────────────────────────────────────────────────── %>
+  <div class="generic-table--action-buttons" id="sp-files-pagination"
+       style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; border-top:1px solid #e8ecf0; margin-top:0.5rem; padding-top:0.5rem;">
+    <span style="font-size:0.875rem; color:#666;" id="sp-pagination-info"></span>
+    <div style="display:flex; align-items:center; gap:0.25rem;">
+      <button class="button sp-pg-btn" id="sp-prev-btn" type="button" disabled>
+        &#x2039; <%= t("sharepoint.files.pagination_prev") %>
+      </button>
+      <div style="display:flex; align-items:center; gap:0.25rem; " id="sp-page-numbers"></div>
+      <button class="button sp-pg-btn" id="sp-next-btn" type="button" disabled>
+        <%= t("sharepoint.files.pagination_next") %> &#x203A;
+      </button>
+    </div>
+  </div>
+
+</div><%# #sp-files-app %>
+
+<% end %>
+
+<%# ── JavaScript ──────────────────────────────────────────────────────────── %>
+<script nonce="<%= content_security_policy_nonce %>">
+(function () {
+  "use strict";
+  var app = document.getElementById("sp-files-app");
+  if (!app) return;
+
+  /* ── Data from server ─────────────────────────────────── */
+  var ALL_ITEMS      = JSON.parse(app.dataset.items      || "[]");
+  var BREADCRUMB     = JSON.parse(app.dataset.breadcrumb || "[]");
+  var FILES_URL      = app.dataset.filesUrl;
+  var MSG_EMPTY      = app.dataset.emptyFolder;
+  var MSG_NO_RESULTS = app.dataset.noResults;
+  var PAGINATION_TPL = app.dataset.paginationTpl;
+
+  /* ── SVG icons (fill="currentColor" + CSS class for color variable) ──────── */
+  var ICON_FOLDER =
+    '<span class="sp-icon-folder" style="margin-right:0.35rem"><svg style="width:14px;height:14px;flex-shrink:0;vertical-align:middle" viewBox="0 0 16 16" fill="currentColor"' +
+    ' xmlns="http://www.w3.org/2000/svg"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0' +
+    ' 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5' +
+    'L6.24 1.5A.75.75 0 005.75 1H1.75z"/></svg></span>';
+  var ICON_FILE =
+    '<span class="sp-icon-file" style="margin-right:0.35rem"><svg style="width:14px;height:14px;flex-shrink:0;vertical-align:middle" viewBox="0 0 16 16" fill="currentColor"' +
+    ' xmlns="http://www.w3.org/2000/svg"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464' +
+    ' 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25' +
+    ' 16h-9.5A1.75 1.75 0 012 14.25V1.75zm1.75-.25a.25.25 0 00-.25.25v12.5c0 .138.112.25' +
+    '.25.25h9.5a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019 4.25V1.5H3.75zm6.75.56v2.19' +
+    'c0 .138.112.25.25.25h2.19L10.5 2.06z"/></svg></span>';
+
+  /* ── State ────────────────────────────────────────────── */
+  var state = { query: "", page: 1, perPage: 10, filtered: [] };
+
+  /* ── DOM refs ─────────────────────────────────────────── */
+  var tbody      = document.getElementById("sp-files-tbody");
+  var emptyMsg   = document.getElementById("sp-empty-msg");
+  var emptyTxt   = document.getElementById("sp-empty-text");
+  var infoEl     = document.getElementById("sp-pagination-info");
+  var pageNums   = document.getElementById("sp-page-numbers");
+  var prevBtn    = document.getElementById("sp-prev-btn");
+  var nextBtn    = document.getElementById("sp-next-btn");
+  var searchIn   = document.getElementById("sp-search");
+  var perPageSel = document.getElementById("sp-per-page");
+
+  /* ── Helpers ──────────────────────────────────────────── */
+  function escHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function fmtSize(bytes) {
+    if (!bytes && bytes !== 0) return "\u2014";
+    if (bytes < 1024)         return bytes + " B";
+    if (bytes < 1048576)      return (bytes / 1024).toFixed(1) + " KB";
+    if (bytes < 1073741824)   return (bytes / 1048576).toFixed(1) + " MB";
+    return (bytes / 1073741824).toFixed(2) + " GB";
+  }
+  function fmtDate(iso) {
+    if (!iso) return "\u2014";
+    var d = new Date(iso), p = function (n) { return n < 10 ? "0" + n : n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+           " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  function folderUrl(item) {
+    var newCrumb = BREADCRUMB.concat([{ id: item.id, name: item.name }]);
+    return FILES_URL +
+      "?folder_id=" + encodeURIComponent(item.id) +
+      "&crumb="     + encodeURIComponent(JSON.stringify(newCrumb));
+  }
+
+  /* ── Render ───────────────────────────────────────────── */
+  function render() {
+    var q = state.query.toLowerCase();
+
+    state.filtered = q
+      ? ALL_ITEMS.filter(function (i) { return i.name.toLowerCase().indexOf(q) !== -1; })
+      : ALL_ITEMS.slice();
+
+    state.filtered.sort(function (a, b) {
+      if (a.is_folder !== b.is_folder) return a.is_folder ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    var total   = state.filtered.length;
+    var perPage = state.perPage;
+    var pages   = Math.max(1, Math.ceil(total / perPage));
+    if (state.page > pages) state.page = pages;
+
+    var start = (state.page - 1) * perPage;
+    var slice = state.filtered.slice(start, start + perPage);
+
+    tbody.innerHTML        = "";
+    emptyMsg.style.display = "none";
+
+    if (total === 0) {
+      emptyMsg.style.display = "block";
+      emptyTxt.textContent   = q ? MSG_NO_RESULTS : MSG_EMPTY;
+      infoEl.textContent     = "";
+      pageNums.innerHTML     = "";
+      prevBtn.disabled = nextBtn.disabled = true;
+      return;
+    }
+
+    slice.forEach(function (item) {
+      var tr       = document.createElement("tr");
+      tr.className = item.is_folder ? "sp-row-folder" : "";
+      tr.addEventListener("mouseenter", function () { this.classList.add("row-hovered"); });
+      tr.addEventListener("mouseleave", function () { this.classList.remove("row-hovered"); });
+
+      var icon = item.is_folder ? ICON_FOLDER : ICON_FILE;
+
+      var href, linkAttr;
+      if (item.is_folder) {
+        href     = folderUrl(item);
+        linkAttr = "";
+        // Clicking anywhere on a folder row navigates into the folder
+        (function (url) {
+          tr.addEventListener("click", function (e) {
+            if (e.target.tagName !== "A") window.location.href = url;
+          });
+        }(href));
+      } else {
+        href     = escHtml(item.web_url || "#");
+        linkAttr = ' target="_blank" rel="noopener noreferrer"';
+      }
+
+      var nameCell =
+        '<td>' +
+          '<div class="sp-item-name-cell">' +
+            icon +
+            '<a href="' + href + '"' + linkAttr + ' class="sp-item-name">' +
+              escHtml(item.name) +
+            '</a>' +
+          '</div>' +
+        '</td>';
+
+      tr.innerHTML =
+        nameCell +
+        '<td class="sp-td-size">' + (item.is_folder ? "\u2014" : fmtSize(item.size)) + '</td>' +
+        '<td>' + fmtDate(item.modified_at) + '</td>' +
+        '<td>' + escHtml(item.modified_by || "\u2014") + '</td>';
+
+      tbody.appendChild(tr);
+    });
+
+    /* Pagination info */
+    var from = start + 1;
+    var to   = Math.min(start + perPage, total);
+    infoEl.textContent = PAGINATION_TPL
+      .replace("{from}", from).replace("{to}", to).replace("{total}", total);
+
+    /* Page buttons (max 5) */
+    pageNums.innerHTML = "";
+    var maxBtns = 5, half = Math.floor(maxBtns / 2);
+    var pStart  = Math.max(1, state.page - half);
+    var pEnd    = Math.min(pages, pStart + maxBtns - 1);
+    if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
+
+    for (var p = pStart; p <= pEnd; p++) {
+      var btn         = document.createElement("button");
+      btn.type        = "button";
+      btn.className   = "button sp-page-num" + (p === state.page ? " -active" : "");
+      btn.textContent = String(p);
+      btn.dataset.page = p;
+      pageNums.appendChild(btn);
+    }
+
+    prevBtn.disabled = state.page <= 1;
+    nextBtn.disabled = state.page >= pages;
+  }
+
+  /* ── Events ───────────────────────────────────────────── */
+  searchIn.addEventListener("input", function () { state.query = this.value; state.page = 1; render(); });
+  perPageSel.addEventListener("change", function () { state.perPage = parseInt(this.value, 10); state.page = 1; render(); });
+  prevBtn.addEventListener("click", function () { if (state.page > 1) { state.page--; render(); } });
+  nextBtn.addEventListener("click", function () {
+    var pages = Math.ceil(state.filtered.length / state.perPage);
+    if (state.page < pages) { state.page++; render(); }
+  });
+  pageNums.addEventListener("click", function (e) {
+    if (e.target.classList.contains("sp-page-num")) {
+      state.page = parseInt(e.target.dataset.page, 10);
+      render();
+    }
+  });
+
+  /* ── Init ─────────────────────────────────────────────── */
+  render();
+}());
+</script>

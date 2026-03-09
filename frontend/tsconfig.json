@@ -1,0 +1,27 @@
+{
+  "extends": "../../../frontend/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../../../frontend",
+    "paths": {
+      "@angular/core":           ["./node_modules/@angular/core"],
+      "@angular/core/*":         ["./node_modules/@angular/core/*"],
+      "@angular/common/*":       ["./node_modules/@angular/common/*"],
+      "@angular/cdk/*":          ["./node_modules/@angular/cdk/*"],
+      "@angular/forms":          ["./node_modules/@angular/forms"],
+      "@angular/forms/*":        ["./node_modules/@angular/forms/*"],
+      "@hotwired/stimulus":      ["./node_modules/@hotwired/stimulus"],
+      "@hotwired/stimulus/*":    ["./node_modules/@hotwired/stimulus/*"],
+      "tslib":                   ["./node_modules/tslib"],
+      "tslib/*":                 ["./node_modules/tslib/*"],
+      "@ng-select/ng-select/*":  ["./node_modules/@ng-select/ng-select/*"],
+      "core-app/*":              ["./src/app/*"],
+      "core-components/*":       ["./src/app/components/*"],
+      "core-elements/*":         ["./src/elements/*"],
+      "core-stimulus/*":         ["./src/stimulus/*"],
+      "core-turbo/*":            ["./src/turbo/*"],
+      "core-typings/*":          ["./src/typings/*"],
+      "core-vendor/*":           ["./src/vendor/*"]
+    }
+  },
+  "include": ["module/**/*.ts"]
+}

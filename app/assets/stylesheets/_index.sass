@@ -1,0 +1,543 @@
+// SharePoint plugin styles
+// Uses OpenProject CSS variables:
+//   var(--accent-color)        = #1A67A3  (primary blue)
+//   var(--accent-color--major1) = #155282 (darker blue)
+//   var(--accent-color--minor1) = #d1e1ed (light blue bg)
+
+// ── Shared: folder row & name cell ────────────────────────────────────────
+.sp-row-folder
+  background-color: #fafcff
+  cursor: pointer
+
+  td:first-child
+    border-left: 2px solid var(--accent-color)
+    padding-left: calc(0.6rem - 2px)
+
+  .sp-item-name
+    font-weight: 600
+    color: var(--accent-color)
+
+.sp-item-name-cell
+  display: flex
+  align-items: center
+  gap: 0.4rem
+  overflow: hidden
+
+.sp-item-name
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  flex: 1
+
+// ── Icon color via CSS variables (folder = accent, file = muted) ────────────
+.sp-icon-folder
+  display: inline-flex
+  align-items: center
+  color: var(--accent-color)
+
+.sp-icon-file
+  display: inline-flex
+  align-items: center
+  color: var(--fgColor-muted, #6e7781)
+
+// ── Shared: folder breadcrumb (used in both files view & settings preview) ─
+.sp-files--breadcrumb
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 0.25rem
+  padding: 0.5rem 0.85rem
+  background: var(--accent-color--minor1, #d1e1ed)
+  border-left: 4px solid var(--accent-color)
+  border-radius: 3px
+  margin-bottom: 1rem
+  font-size: 0.875rem
+
+.sp-bc--sep
+  color: #aaa
+  font-size: 1rem
+  line-height: 1
+
+// Supports both <a> links and <span> for current item
+.sp-files--breadcrumb
+  .sp-bc--item, a.sp-bc--item
+    background: none
+    border: none
+    padding: 0
+    color: var(--accent-color)
+    text-decoration: none
+    cursor: pointer
+    font-size: 0.875rem
+    white-space: nowrap
+
+    &:hover
+      text-decoration: underline
+
+    &.-current
+      color: #333
+      font-weight: 600
+      text-decoration: none
+      cursor: default
+
+// ── Shared: pagination page-number buttons ─────────────────────────────────
+.sp-page-num
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  height: 2rem
+  padding: 0 0.65rem
+  border: 1px solid #d0d7de
+  background: #fff
+  border-radius: 3px
+  cursor: pointer
+  font-size: 0.82rem
+  color: #333
+  line-height: 1
+  transition: background 0.1s
+
+  &:hover
+    background: var(--accent-color--minor1, #d1e1ed)
+    border-color: var(--accent-color)
+    color: var(--accent-color)
+
+  &.-active
+    background: var(--accent-color)
+    color: #fff
+    border-color: var(--accent-color)
+
+  &:disabled
+    opacity: 0.4
+    cursor: not-allowed
+
+// Prev/Next buttons (reuse .button class, override size)
+.sp-pg-btn.button
+  height: 2rem
+  padding: 0 0.65rem
+  font-size: 0.82rem
+
+  &:disabled
+    opacity: 0.4
+    cursor: not-allowed
+
+// ── Files index: table columns ─────────────────────────────────────────────
+.generic-table
+  td
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
+    vertical-align: middle
+
+  td.sp-td-size
+    text-align: right
+
+// ── Project settings: full-width search bar (files-page style) ───────────────
+.sp-search-bar-wrap
+  display: flex
+  align-items: center
+  gap: 0.5rem
+  margin-bottom: 0.4rem
+
+// Relative wrapper so icon can be positioned inside the input
+.sp-search-bar--input-wrap
+  position: relative
+  flex: 1
+
+.sp-search-bar--icon
+  position: absolute
+  left: 0.75rem
+  top: 50%
+  transform: translateY(-50%)
+  color: #888
+  pointer-events: none
+
+.sp-search-bar--input
+  width: 100%
+  padding: 0.6rem 0.85rem 0.6rem 2.4rem
+  border: 1px solid #d0d7de
+  border-radius: 6px
+  font-size: 0.95rem
+  line-height: 1.5
+  outline: none
+  box-sizing: border-box
+
+  &:focus
+    border-color: var(--accent-color)
+    box-shadow: 0 0 0 2px rgba(26, 103, 163, 0.15)
+
+// ── Right panel: empty state ──────────────────────────────────────────────────
+.sp-right--placeholder
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 1rem
+  padding: 3rem 2rem
+  text-align: center
+  color: #aaa
+  background: #f9fafb
+  border: 1px dashed #d0d7de
+  border-radius: 6px
+  min-height: 240px
+  font-size: 0.9rem
+
+// ── Search form ───────────────────────────────────────────────────────────────
+.sp-search-form
+  display: flex
+  align-items: center
+  gap: 0.5rem
+  margin-bottom: 0.4rem
+
+// Standalone input — does NOT use form--text-field (that class forces width:100%)
+.sp-search-form--input
+  flex: 1
+  min-width: 0
+  padding: 0.4rem 0.65rem
+  border: 1px solid #d0d7de
+  border-radius: 4px
+  font-size: 0.9rem
+  line-height: 1.5
+  outline: none
+
+  &:focus
+    border-color: var(--accent-color)
+    box-shadow: 0 0 0 2px rgba(26, 103, 163, 0.15)
+
+.sp-search--hint
+  font-size: 0.8rem
+  color: #888
+  margin-bottom: 0.75rem
+
+  &.-error
+    color: #c0392b
+
+// ── Selected-site bar (right panel header) ────────────────────────────────────
+.sp-selected-bar
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 1rem
+  padding: 0.65rem 0.85rem
+  background: var(--accent-color--minor1, #d1e1ed)
+  border-left: 4px solid var(--accent-color)
+  border-radius: 3px
+  margin-bottom: 1rem
+  font-size: 0.9rem
+
+.sp-selected-bar--name
+  font-weight: 600
+  color: var(--accent-color)
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+// ── Site result dropdown list ────────────────────────────────────────────────
+.sp-site-list--item
+  padding: 0.65rem 0.9rem
+  border-bottom: 1px solid #f0f2f4
+  cursor: pointer
+  transition: background 0.12s
+
+  &:last-child
+    border-bottom: none
+
+  &:hover
+    background: var(--accent-color--minor1, #d1e1ed)
+
+  &.-selected
+    background: var(--accent-color--minor1, #d1e1ed)
+    border-left: 3px solid var(--accent-color)
+    padding-left: calc(0.9rem - 3px)
+
+.sp-site-list--name
+  font-size: 0.95rem
+  font-weight: 700
+  color: #24292f
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  line-height: 1.35
+
+.sp-site-list--desc
+  font-size: 0.8rem
+  color: #555
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  margin-top: 0.15rem
+
+.sp-site-list--url
+  font-size: 0.75rem
+  color: #aaa
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  margin-top: 0.1rem
+
+.sp-site-list--loader
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 0.6rem
+  color: #888
+
+// ── Site result grid (kept for files page) ───────────────────────────────────
+.sp-site-cards
+  display: grid
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr))
+  gap: 1rem
+  padding: 0
+  margin-bottom: 1.5rem
+
+.sp-site-card
+  background: #fff
+  border: 1px solid #e0e6ec
+  border-radius: 8px
+  cursor: pointer
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+  &:hover
+    border-color: var(--accent-color)
+    box-shadow: 0 4px 14px rgba(26, 103, 163, 0.18)
+    transform: translateY(-2px)
+
+  &.-selected
+    border-color: var(--accent-color)
+    box-shadow: 0 4px 14px rgba(26, 103, 163, 0.25)
+
+// Colored tile at top of each card
+.sp-site-card--tile
+  position: relative
+  aspect-ratio: 1.2 / 1
+  display: flex
+  align-items: center
+  justify-content: center
+  user-select: none
+
+.sp-site-card--tile-letters
+  font-size: 2.5rem
+  font-weight: 800
+  color: rgba(255, 255, 255, 0.95)
+  letter-spacing: -0.04em
+  line-height: 1
+
+.sp-site-card--tile-icon
+  position: absolute
+  bottom: 0.5rem
+  right: 0.6rem
+  opacity: 0.4
+  color: #fff
+  display: flex
+  align-items: center
+
+// Info area below the tile
+.sp-site-card--info
+  padding: 0.65rem 0.75rem
+  flex: 1
+  min-width: 0
+
+.sp-site-card--name
+  font-size: 0.82rem
+  font-weight: 600
+  color: #24292f
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  line-height: 1.35
+
+.sp-site-card--desc
+  font-size: 0.73rem
+  color: #7a8594
+  overflow: hidden
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+  margin-top: 0.2rem
+  line-height: 1.4
+
+// ── Project settings: site selector dropdown (legacy — kept for reference) ──
+.sp-settings--dropdown-wrap
+  position: relative
+  flex: 1
+  max-width: 520px
+
+.sp-settings--trigger
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 0.45rem 0.75rem
+  background: #fff
+  border: 1px solid #d0d7de
+  border-radius: 4px
+  cursor: pointer
+  min-height: 2.2rem
+  user-select: none
+
+  &:hover,
+  &:focus
+    border-color: var(--accent-color)
+    outline: none
+
+  &[aria-expanded="true"]
+    border-color: var(--accent-color)
+    box-shadow: 0 0 0 2px rgba(26, 103, 163, 0.15)
+
+    .sp-settings--trigger-caret
+      transform: rotate(180deg)
+
+.sp-settings--trigger-text
+  flex: 1
+  font-size: 0.9rem
+  color: #333
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+  &.-placeholder
+    color: #999
+
+.sp-settings--trigger-caret
+  font-size: 0.7rem
+  color: #666
+  margin-left: 0.5rem
+  transition: transform 0.15s
+
+// Dropdown panel
+.sp-settings--dropdown-panel
+  position: absolute
+  top: calc(100% + 3px)
+  left: 0
+  right: 0
+  background: #fff
+  border: 1px solid #d0d7de
+  border-radius: 4px
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12)
+  z-index: 200
+  max-height: 320px
+  display: flex
+  flex-direction: column
+
+.sp-settings--panel-search-wrap
+  padding: 0.5rem
+  border-bottom: 1px solid #e8ecf0
+  flex-shrink: 0
+
+// Site list
+.sp-settings--site-list
+  list-style: none
+  margin: 0
+  padding: 0
+  overflow-y: auto
+  flex: 1
+
+.sp-site-item
+  padding: 0.55rem 0.85rem
+  cursor: pointer
+  border-bottom: 1px solid #f3f4f6
+  display: flex
+  flex-direction: column
+  gap: 1px
+
+  &:last-child
+    border-bottom: none
+
+  &:hover
+    background: var(--accent-color--minor1, #d1e1ed)
+
+  &.-selected
+    background: var(--accent-color--minor1, #d1e1ed)
+
+.sp-site-item-name
+  font-size: 0.9rem
+  font-weight: 500
+  color: var(--accent-color)
+
+.sp-site-item-url
+  font-size: 0.78rem
+  color: #888
+
+.sp-site-item-empty
+  padding: 1rem
+  text-align: center
+  color: #999
+  font-size: 0.875rem
+
+// Preview table
+.sp-settings--preview-table
+  width: 100%
+  table-layout: fixed
+
+  td
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
+    vertical-align: middle
+
+// ── Panel card — left-column container ────────────────────────────────────────
+.sp-panel
+  background: #fff
+  border: 1px solid #d0d7de
+  border-radius: 8px
+  overflow: hidden
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06)
+
+.sp-panel--header
+  display: flex
+  align-items: center
+  gap: 0.5rem
+  padding: 0.65rem 1rem
+  background: #f6f8fa
+  border-bottom: 1px solid #d0d7de
+  font-size: 0.85rem
+  font-weight: 600
+  color: #24292f
+
+.sp-panel--body
+  padding: 1rem 1rem 0.5rem
+
+// ── Results meta (site count) ──────────────────────────────────────────────────
+.sp-results-meta
+  padding: 0.35rem 1rem
+  font-size: 0.8rem
+  color: #888
+
+// ── Small avatar for selected-site bar ────────────────────────────────────────
+.sp-avatar-sm
+  width: 36px
+  height: 36px
+  flex-shrink: 0
+  border-radius: 8px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  color: #fff
+  font-size: 0.9rem
+  font-weight: 700
+  letter-spacing: -0.02em
+  user-select: none
+
+// ── Selected-bar sub-elements ──────────────────────────────────────────────────
+.sp-selected-bar--info
+  flex: 1
+  min-width: 0
+
+.sp-selected-bar--label
+  font-size: 0.68rem
+  text-transform: uppercase
+  letter-spacing: 0.07em
+  color: #5a6a7a
+  margin-bottom: 0.1rem
+
+// ── Right panel: empty-state icon container ────────────────────────────────────
+.sp-right--ph-icon
+  width: 72px
+  height: 72px
+  border-radius: 16px
+  background: #e8ecf0
+  display: flex
+  align-items: center
+  justify-content: center
+  color: #adb5bd
+  flex-shrink: 0

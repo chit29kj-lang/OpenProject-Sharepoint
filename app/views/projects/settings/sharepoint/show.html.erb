@@ -1,0 +1,422 @@
+<%# Project Settings – SharePoint Relation %>
+<% html_title @project.name, t(:label_project_settings), t("sharepoint.project_settings.title") %>
+
+<%=
+  render Primer::OpenProject::PageHeader.new do |header|
+    header.with_title { t("sharepoint.project_settings.title") }
+    header.with_breadcrumbs(
+      [{ href: project_overview_path(@project), text: @project.name },
+       { href: project_settings_general_path(@project), text: t(:label_project_settings) },
+       t("sharepoint.project_settings.title")]
+    )
+  end
+%>
+
+<%# ── Section 1: Current link status ────────────────────────────────────── %>
+<section class="form--section">
+      <div class="form--field-container -wide" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <span style="font-weight: 600; font-size: 1.5rem;"><%= t("sharepoint.project_settings.linked_site_label") %></span>
+        <% if @mapping %>
+              <%= @mapping.sharepoint_site_name.presence || @mapping.sharepoint_site_id %>
+          <%= link_to t("sharepoint.project_settings.remove_link"),
+                project_settings_sharepoint_path(@project),
+                method: :delete,
+                data: { confirm: t("sharepoint.project_settings.confirm_remove") },
+                style: "flex-shrink:0; white-space:nowrap;",
+                class: "button -primary -small" %>
+        <% else %>
+          <span style="color:#666; font-style:italic; font-size:0.9rem;">
+            <%= t("sharepoint.project_settings.no_linked_site") %>
+          </span>
+        <% end %>
+      </div>
+</section>
+
+<%# ── Section 2: Search & Link ───────────────────────────────────────────── %>
+<section class="form--section">
+  <%=
+    render(Primer::Beta::Subhead.new(hide_border: true)) do |component|
+      component.with_heading(tag: :h3) { t("sharepoint.project_settings.search_panel_title") }
+    end
+  %>
+
+  <%#
+    Angular custom element <sp-site-cards>:
+      • Renders its own search bar
+      • Calls the sites API (20 per page via MS Graph pagination)
+      • Displays results as a CDK Drag & Drop card grid
+      • Triggers infinite-scroll to load the next page automatically
+      • Fires a "siteSelected" CustomEvent when a card is clicked
+  %>
+  <sp-site-cards
+    id="sp-site-cards-el"
+    sites-url="<%= sites_project_settings_sharepoint_path(@project) %>"
+    placeholder="<%= j t('sharepoint.project_settings.search_placeholder') %>"
+    btn-label="<%= j t('sharepoint.project_settings.search_btn') %>"
+    hint-default="<%= j t('sharepoint.project_settings.search_hint') %>"
+    hint-min-chars="<%= j t('sharepoint.project_settings.search_min_chars') %>"
+    loading-text="<%= j t('sharepoint.project_settings.loading') %>"
+    loading-more-text="<%= j t('sharepoint.project_settings.loading_items') %>"
+    no-results-text="<%= j t('sharepoint.project_settings.no_results') %>">
+  </sp-site-cards>
+
+  <%# data-attributes consumed by the file-preview JS below %>
+  <div id="sp-settings-app"
+       data-site-items-url="<%= site_items_project_settings_sharepoint_path(@project) %>"
+       data-loading-items="<%= j t('sharepoint.project_settings.loading_items') %>"
+       style="display:none;">
+  </div>
+</section>
+
+<%# ── Section 3: File browser preview (commented out — not displayed) ───── %>
+<% if false %>
+<section class="form--section" id="sp-preview-section" style="display:none;">
+  <%=
+    render(Primer::Beta::Subhead.new(hide_border: true)) do |component|
+      component.with_heading(tag: :h3, id: "sp-preview-heading") { "" }
+    end
+  %>
+  <nav class="sp-files--breadcrumb" id="sp-preview-breadcrumb"
+       style="display:none;" aria-label="breadcrumb"></nav>
+
+  <div id="sp-preview-loading"
+       style="display:none; align-items:center; gap:0.5rem; padding:1.5rem; color:#555; font-size:0.9rem;">
+    <span class="loading-indicator -small"></span>
+    <span id="sp-loading-text"></span>
+  </div>
+
+  <div class="op-toast -error" id="sp-preview-error"
+       style="display:none; margin-bottom:0.75rem;"></div>
+
+  <div class="generic-table--container" id="sp-preview-table-container" style="display:none;">
+    <div class="generic-table--results-container">
+      <table class="generic-table sp-settings--preview-table" id="sp-preview-table">
+        <colgroup>
+          <col style="width:48%">
+          <col style="width:10%">
+          <col style="width:26%">
+          <col style="width:16%">
+        </colgroup>
+        <thead class="-sticky">
+          <tr>
+            <th><div class="generic-table--sort-header-outer"><div class="generic-table--sort-header">
+              <span>Name</span>
+            </div></div></th>
+            <th style="text-align:right"><div class="generic-table--sort-header-outer"><div class="generic-table--sort-header">
+              <span>Size</span>
+            </div></div></th>
+            <th><div class="generic-table--sort-header-outer"><div class="generic-table--sort-header">
+              <span>Modified</span>
+            </div></div></th>
+            <th><div class="generic-table--sort-header-outer"><div class="generic-table--sort-header">
+              <span>Modified By</span>
+            </div></div></th>
+          </tr>
+        </thead>
+        <tbody id="sp-preview-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="generic-table--action-buttons" id="sp-preview-pagination"
+       style="display:none; justify-content:flex-end;">
+    <div style="display:flex; align-items:center; gap:0.25rem;">
+      <button class="button sp-pg-btn" id="sp-preview-prev" type="button" disabled>
+        &#x2039; Previous
+      </button>
+      <div style="display:flex; align-items:center; gap:0.2rem;" id="sp-preview-pages"></div>
+      <button class="button sp-pg-btn" id="sp-preview-next" type="button" disabled>
+        Next &#x203A;
+      </button>
+    </div>
+  </div>
+</section>
+<% end %>
+
+<%# ── Selected-site bar + link form (revealed by siteSelected event) ─── %>
+<section class="form--section" style="margin-top:1.5rem;">
+  <div id="sp-selected-bar" style="display:none; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+    <%= styled_form_tag(project_settings_sharepoint_path(@project),
+                        method: :patch,
+                        id: "sp-link-form",
+                        style: "margin:0; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;") do %>
+      <%= hidden_field_tag "sharepoint_mapping[sharepoint_site_id]",   "", id: "sp-site-id-input" %>
+      <%= hidden_field_tag "sharepoint_mapping[sharepoint_site_name]", "", id: "sp-site-name-input" %>
+      <span style="font-weight:600;"><%= t("sharepoint.project_settings.selected_label") %></span>
+      <span id="sp-selected-name" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      <%= styled_button_tag t("sharepoint.project_settings.link_btn"),
+            class: "-primary",
+            id: "sp-link-btn",
+            disabled: true,
+            style: "flex-shrink:0; white-space:nowrap; margin:0;" %>
+    <% end %>
+  </div>
+</section>
+<%# ── JavaScript ──────────────────────────────────────────────────────────── %>
+<script nonce="<%= content_security_policy_nonce %>">
+(function () {
+  "use strict";
+
+  /* ── DOM refs ────────────────────────────────────────── */
+  var selectedBar    = document.getElementById("sp-selected-bar");
+  var selectedName   = document.getElementById("sp-selected-name");
+  var linkBtn        = document.getElementById("sp-link-btn");
+  var siteIdIn       = document.getElementById("sp-site-id-input");
+  var siteNameIn     = document.getElementById("sp-site-name-input");
+
+  /* ── Handle siteSelected from Angular component ──────── */
+  document.addEventListener("siteSelected", function(e) {
+    var site = e.detail;
+
+    siteIdIn.value   = site.id;
+    siteNameIn.value = site.name;
+    linkBtn.disabled = false;
+    selectedName.textContent    = site.name;
+    selectedBar.style.display   = "flex";
+  });
+
+  /*
+  ── Preview code (commented out — not displayed) ────────────────────────
+
+  var app = document.getElementById("sp-settings-app");
+  if (!app) return;
+
+  var ITEMS_URL      = app.dataset.siteItemsUrl;
+  var TXT_LOAD_ITEMS = app.dataset.loadingItems;
+
+  var ICON_FOLDER =
+    '<span class="sp-icon-folder" style="margin-right:0.5rem">' +
+    '<svg style="width:14px;height:14px;flex-shrink:0;vertical-align:middle" viewBox="0 0 16 16" fill="currentColor">' +
+    '<path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5L6.24 1.5A.75.75 0 005.75 1H1.75z"/>' +
+    '</svg></span>';
+
+  var ICON_FILE =
+    '<span class="sp-icon-file" style="margin-right:0.5rem">' +
+    '<svg style="width:14px;height:14px;flex-shrink:0;vertical-align:middle" viewBox="0 0 16 16" fill="currentColor">' +
+    '<path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25 16h-9.5A1.75 1.75 0 012 14.25V1.75zm1.75-.25a.25.25 0 00-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019 4.25V1.5H3.75zm6.75.56v2.19c0 .138.112.25.25.25h2.19L10.5 2.06z"/>' +
+    '</svg></span>';
+
+  var previewSection = document.getElementById("sp-preview-section");
+  var previewHeading = document.getElementById("sp-preview-heading");
+  var previewLoad    = document.getElementById("sp-preview-loading");
+  var loadingText    = document.getElementById("sp-loading-text");
+  var previewErr     = document.getElementById("sp-preview-error");
+  var previewTblWrap = document.getElementById("sp-preview-table-container");
+  var previewTbody   = document.getElementById("sp-preview-tbody");
+  var previewBcNav   = document.getElementById("sp-preview-breadcrumb");
+  var previewPagEl   = document.getElementById("sp-preview-pagination");
+  var prevBtnEl      = document.getElementById("sp-preview-prev");
+  var nextBtnEl      = document.getElementById("sp-preview-next");
+  var pageNumsEl     = document.getElementById("sp-preview-pages");
+
+  var state = {
+    selected:          null,
+    currentSiteId:     null,
+    previewBreadcrumb: [],
+    previewAllItems:   [],
+    previewPage:       1,
+    previewPerPage:    20
+  };
+
+  function escHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function fmtSize(bytes) {
+    if (!bytes && bytes !== 0) return "\u2014";
+    if (bytes < 1024)       return bytes + " B";
+    if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
+    if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + " MB";
+    return (bytes / 1073741824).toFixed(2) + " GB";
+  }
+  function fmtDate(iso) {
+    if (!iso) return "\u2014";
+    var d = new Date(iso), p = function(n) { return n < 10 ? "0" + n : n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+           " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  // In siteSelected handler, add:
+  //   if (previewHeading) previewHeading.textContent = site.name;
+  //   previewSection.style.display = "block";
+  //   loadSiteItems(site.id, null);
+
+  function loadSiteItems(siteId, folderId) {
+    previewErr.style.display         = "none";
+    previewTblWrap.style.display     = "none";
+    previewPagEl.style.display       = "none";
+    previewBcNav.style.display       = "none";
+    loadingText.textContent          = TXT_LOAD_ITEMS;
+    previewLoad.style.display        = "flex";
+
+    var url = ITEMS_URL + "?site_id=" + encodeURIComponent(siteId);
+    if (folderId) url += "&folder_id=" + encodeURIComponent(folderId);
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        previewLoad.style.display = "none";
+        if (data.error) {
+          previewErr.textContent   = data.error;
+          previewErr.style.display = "block";
+          return;
+        }
+        var items = Array.isArray(data) ? data : [];
+        items.sort(function(a, b) {
+          if (a.is_folder !== b.is_folder) return a.is_folder ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+        state.previewAllItems = items;
+        state.previewPage     = 1;
+        renderPreviewBreadcrumb();
+        renderPreviewTable();
+        renderPreviewPagination();
+        previewBcNav.style.display   = "flex";
+        previewTblWrap.style.display = "block";
+      })
+      .catch(function(err) {
+        previewLoad.style.display = "none";
+        previewErr.textContent    = "Error: " + err.message;
+        previewErr.style.display  = "block";
+      });
+  }
+
+  function renderPreviewBreadcrumb() {
+    previewBcNav.innerHTML = "";
+    var isRoot = state.previewBreadcrumb.length === 0;
+    var rootEl;
+    if (isRoot) {
+      rootEl = document.createElement("span");
+      rootEl.className   = "sp-bc--item -current";
+      rootEl.setAttribute("aria-current", "page");
+    } else {
+      rootEl = document.createElement("a");
+      rootEl.href      = "#";
+      rootEl.className = "sp-bc--item";
+      rootEl.addEventListener("click", function(e) {
+        e.preventDefault();
+        state.previewBreadcrumb = [];
+        state.previewPage = 1;
+        loadSiteItems(state.currentSiteId, null);
+      });
+    }
+    rootEl.textContent = state.selected ? state.selected.name : "Root";
+    previewBcNav.appendChild(rootEl);
+
+    state.previewBreadcrumb.forEach(function(crumb, idx) {
+      var sep = document.createElement("span");
+      sep.className        = "sp-bc--sep";
+      sep.setAttribute("aria-hidden", "true");
+      sep.textContent      = "\u203A";
+      previewBcNav.appendChild(sep);
+
+      var isCurrent = idx === state.previewBreadcrumb.length - 1;
+      var crumbEl;
+      if (isCurrent) {
+        crumbEl = document.createElement("span");
+        crumbEl.className = "sp-bc--item -current";
+        crumbEl.setAttribute("aria-current", "page");
+      } else {
+        crumbEl = document.createElement("a");
+        crumbEl.href      = "#";
+        crumbEl.className = "sp-bc--item";
+        (function(ci, cid) {
+          crumbEl.addEventListener("click", function(e) {
+            e.preventDefault();
+            state.previewBreadcrumb = state.previewBreadcrumb.slice(0, ci + 1);
+            state.previewPage = 1;
+            loadSiteItems(state.currentSiteId, cid);
+          });
+        }(idx, crumb.id));
+      }
+      crumbEl.textContent = crumb.name;
+      previewBcNav.appendChild(crumbEl);
+    });
+  }
+
+  function renderPreviewTable() {
+    var start = (state.previewPage - 1) * state.previewPerPage;
+    var items = state.previewAllItems.slice(start, start + state.previewPerPage);
+    previewTbody.innerHTML = "";
+
+    if (state.previewAllItems.length === 0) {
+      var emptyRow = document.createElement("tr");
+      emptyRow.innerHTML =
+        '<td colspan="4" style="text-align:center;padding:1.5rem;color:#888;">No files or folders found.</td>';
+      previewTbody.appendChild(emptyRow);
+      return;
+    }
+
+    items.forEach(function(item) {
+      var tr = document.createElement("tr");
+      tr.className = item.is_folder ? "sp-row-folder" : "";
+      var icon = item.is_folder ? ICON_FOLDER : ICON_FILE;
+      var nameCell;
+
+      if (item.is_folder) {
+        nameCell = '<td><div class="sp-item-name-cell">' + icon +
+          '<span class="sp-item-name">' + escHtml(item.name) + '</span></div></td>';
+        (function(ci) {
+          tr.addEventListener("click", function() {
+            state.previewBreadcrumb.push({ id: ci.id, name: ci.name });
+            state.previewPage = 1;
+            loadSiteItems(state.currentSiteId, ci.id);
+          });
+        }(item));
+      } else {
+        var fileLink = item.web_url
+          ? '<a href="' + escHtml(item.web_url) + '" target="_blank" rel="noopener noreferrer" class="sp-item-name">' + escHtml(item.name) + '</a>'
+          : '<span class="sp-item-name">' + escHtml(item.name) + '</span>';
+        nameCell = '<td><div class="sp-item-name-cell">' + icon + fileLink + '</div></td>';
+      }
+
+      tr.innerHTML = nameCell +
+        '<td class="sp-td-size">' + (item.is_folder ? "\u2014" : fmtSize(item.size)) + '</td>' +
+        '<td>' + fmtDate(item.modified_at) + '</td>' +
+        '<td>' + escHtml(item.modified_by || "\u2014") + '</td>';
+      previewTbody.appendChild(tr);
+    });
+  }
+
+  function renderPreviewPagination() {
+    var total  = state.previewAllItems.length;
+    var pages  = Math.max(1, Math.ceil(total / state.previewPerPage));
+    pageNumsEl.innerHTML = "";
+    var maxBtns = 5, half = Math.floor(maxBtns / 2);
+    var pStart  = Math.max(1, state.previewPage - half);
+    var pEnd    = Math.min(pages, pStart + maxBtns - 1);
+    if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
+
+    for (var p = pStart; p <= pEnd; p++) {
+      var btn = document.createElement("button");
+      btn.type      = "button";
+      btn.className = "button sp-page-num" + (p === state.previewPage ? " -active" : "");
+      btn.textContent  = String(p);
+      btn.dataset.page = p;
+      pageNumsEl.appendChild(btn);
+    }
+    prevBtnEl.disabled = state.previewPage <= 1;
+    nextBtnEl.disabled = state.previewPage >= pages;
+    previewPagEl.style.display = pages > 1 ? "flex" : "none";
+  }
+
+  prevBtnEl.addEventListener("click", function() {
+    if (state.previewPage > 1) { state.previewPage--; renderPreviewTable(); renderPreviewPagination(); }
+  });
+  nextBtnEl.addEventListener("click", function() {
+    var pages = Math.ceil(state.previewAllItems.length / state.previewPerPage);
+    if (state.previewPage < pages) { state.previewPage++; renderPreviewTable(); renderPreviewPagination(); }
+  });
+  pageNumsEl.addEventListener("click", function(e) {
+    if (e.target.classList.contains("sp-page-num")) {
+      state.previewPage = parseInt(e.target.dataset.page, 10);
+      renderPreviewTable();
+      renderPreviewPagination();
+    }
+  });
+
+  ── End of preview code ─────────────────────────────────────────────────
+  */
+}());
+</script>

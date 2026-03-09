@@ -1,0 +1,77 @@
+<div class="sp-sc">
+
+  <!-- ── Search bar ───────────────────────────────────────────────────── -->
+  <div class="sp-sc--search-row">
+    <input
+      type="text"
+      class="form--text-field sp-sc--input"
+      [(ngModel)]="query"
+      [placeholder]="placeholder"
+      maxlength="200"
+      autocomplete="off"
+      (keydown)="onKeydown($event)"
+    />
+    <button type="button" class="button -primary sp-sc--btn" (click)="onSearch()">
+      {{ btnLabel }}
+    </button>
+  </div>
+
+  <!-- Hint / validation message -->
+  <p class="sp-search--hint" [class.-error]="hintIsError">{{ hint }}</p>
+
+  <!-- ── Loading (initial fetch) ──────────────────────────────────────── -->
+  <div *ngIf="loading" class="sp-sc--state">
+    <span class="loading-indicator -small"></span>
+    <span>{{ loadingText }}</span>
+  </div>
+
+  <!-- ── Error ────────────────────────────────────────────────────────── -->
+  <div *ngIf="error" class="op-toast -error sp-sc--toast">{{ error }}</div>
+
+  <!-- ── Scrollable search results area (max 5 rows) ──────────────────── -->
+  <div
+    *ngIf="!loading && sites.length > 0"
+    class="sp-sc--results-scroll"
+    #resultsScroll
+  >
+    <!-- ── Card grid (CDK Drag & Drop) ────────────────────────────────── -->
+    <div
+      cdkDropList
+      cdkDropListOrientation="mixed"
+      class="sp-site-cards"
+      (cdkDropListDropped)="onDrop($event)"
+    >
+      <div
+        *ngFor="let site of sites; trackBy: trackBySiteId"
+        cdkDrag
+        class="sp-site-card"
+        [class.-selected]="selectedSite?.id === site.id"
+        (click)="selectSite(site)"
+      >
+        <!-- Placeholder shown while dragging -->
+        <div *cdkDragPlaceholder class="sp-site-card sp-site-card--ph"></div>
+
+        <!-- Text info -->
+        <div class="sp-site-card--info">
+          <div class="sp-site-card--name" [title]="site.name">{{ site.name }}</div>
+          <div *ngIf="site.description" class="sp-site-card--desc">{{ site.description }}</div>
+          <div *ngIf="site.web_url" class="sp-site-card--url">{{ site.web_url }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Infinite-scroll sentinel + "load more" spinner ─────────────── -->
+    <div #scrollAnchor class="sp-sc--sentinel">
+      <div *ngIf="loadingMore" class="sp-sc--state">
+        <span class="loading-indicator -small"></span>
+        <span>{{ loadingMoreText }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Empty state ──────────────────────────────────────────────────── -->
+  <div *ngIf="!loading && !error && sites.length === 0 && hasSearched" class="sp-sc--empty">
+    {{ noResultsText }}
+  </div>
+
+</div>

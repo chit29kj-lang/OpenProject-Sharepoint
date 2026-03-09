@@ -1,0 +1,97 @@
+en:
+  sharepoint_label: "SharePoint"
+  sharepoint:
+    label: "SharePoint"
+    admin:
+      title: "SharePoint Connector Data"
+      tenant_id: "Tenant ID"
+      client_id: "Client ID"
+      client_secret: "Client Secret"
+      root_url: "SharePoint Root URL"
+      saved: "Credentials saved."
+      test_btn: "Test Connection"
+      test_connecting: "Connecting"
+      test_ok: "Connection successful — %{count} site(s) found."
+      test_success: "Connection successful."
+      test_failed: "Connection failed: %{error}"
+      guide:
+        title: "Setup Guide — How to connect SharePoint"
+        subtitle: "Follow these steps to register an Azure App and link it to OpenProject."
+        step1_title: "Sign in to Azure Portal"
+        step1_body: "Go to portal.azure.com using a Global Administrator or Application Administrator account."
+        step2_title: "Create a new App Registration"
+        step2_body: >
+          Navigate to Azure Active Directory > App registrations > New registration.
+          Enter a name (e.g. "OpenProject SharePoint"), select "Accounts in this organizational
+          directory only", then click Register.
+        step3_title: "Copy Tenant ID and Client ID"
+        step3_body: >
+          On the app overview page, copy the Directory (tenant) ID and Application (client) ID.
+          Paste them into the Tenant ID and Client ID fields below.
+        step4_title: "Create a Client Secret"
+        step4_body: >
+          Go to Certificates & secrets > New client secret. Set a description and expiry,
+          click Add, then immediately copy the Value (it is shown only once).
+          Paste it into the Client Secret field below.
+        step5_title: "Grant API Permissions"
+        step5_body: >
+          Go to API permissions > Add a permission > Microsoft Graph > Application permissions.
+          Add Sites.Read.All and Files.Read.All, then click Grant admin consent for your tenant.
+        step6_title: "Enter SharePoint Root URL, Save and Test"
+        step6_body: >
+          Enter your SharePoint root URL (e.g. https://contoso.sharepoint.com),
+          click Save, then click Test Connection to verify the setup is working correctly.
+    project_settings:
+      title: "SharePoint Relation"
+      linked_to: "Linked to: %{site}"
+      linked_site_label: "Linked site:"
+      no_linked_site: "No site linked yet"
+      remove_link: "Remove link"
+      confirm_remove: "Remove SharePoint link for this project?"
+      link_btn: "Link selected site"
+      save_btn: "Link selected site"
+      saved: "SharePoint site linked."
+      removed: "SharePoint link removed."
+      loading: "Loading sites..."
+      loading_items: "Loading site contents..."
+      select_placeholder: "— select a site —"
+      search_placeholder: "Search SharePoint sites..."
+      search_btn: "Search"
+      search_hint: "Enter at least 3 characters to search."
+      search_min_chars: "Please enter at least 3 characters."
+      search_results: "%{count} site(s) found"
+      no_results: "No sites match your search."
+      search_panel_title: "Search Sites"
+      selected_label: "Selected site"
+      no_site_selected: "Search for a SharePoint site on the left, then click a result to preview its contents before linking."
+      col_name: "Name"
+      col_size: "Size"
+      col_modified: "Modified"
+      col_modified_by: "Modified By"
+      type_folder: "Folder"
+      type_file: "File"
+    files:
+      title: "SharePoint Files"
+      site_label: "SharePoint site:"
+      root_label: "Root"
+      back_to_root: "Back to root"
+      search_placeholder: "Search in this folder..."
+      per_page_label: "Show:"
+      per_page_suffix: "per page"
+      empty_folder: "This folder is empty."
+      no_search_results: "No items match your search."
+      no_mapping: "No SharePoint site is linked to this project."
+      link_site: "Link a site"
+      col_name: "Name"
+      col_size: "Size"
+      col_modified: "Modified"
+      col_modified_by: "Modified By"
+      type_folder: "Folder"
+      type_file: "File"
+      pagination_info: "%{from}–%{to} of %{total} items"
+      pagination_prev: "Previous"
+      pagination_next: "Next"
+  permission_manage_sharepoint_mapping: "Manage SharePoint site link"
+  permission_view_sharepoint_files: "View SharePoint files"
+  project_module_sharepoint_integration: "SharePoint"
+  label_sharepoint: "SharePoint"
